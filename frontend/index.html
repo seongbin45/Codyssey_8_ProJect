@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>내 데이터를 아는 AI 비서</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div>
+        <h1>내 데이터를 아는 AI 비서</h1>
+        <p>시계열 데이터를 분석하고, 그 결과를 바탕으로 대화하는 AI 서비스</p>
+      </div>
+    </header>
+
+    <nav class="tab-bar">
+      <button class="tab-btn" data-tab-btn="chat">채팅</button>
+      <button class="tab-btn" data-tab-btn="data">데이터 관리</button>
+      <button class="tab-btn" data-tab-btn="conversations">대화 기록</button>
+      <button class="tab-btn" data-tab-btn="summary">데이터 요약</button>
+    </nav>
+
+    <!-- 채팅 인터페이스 -->
+    <section class="panel chat-panel" data-tab-panel="chat" hidden>
+      <div class="chat-panel__header">
+        <h2>AI 채팅</h2>
+        <button class="btn btn--ghost btn--sm" id="chat-new-btn">새 대화</button>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <form class="chat-form" id="chat-form">
+        <input type="text" id="chat-input" placeholder="데이터에 대해 물어보세요 (예: 이번 달 실적이 어때?)" autocomplete="off" />
+        <button type="submit" class="btn">전송</button>
+      </form>
+    </section>
+
+    <!-- 데이터 관리 -->
+    <section class="panel" data-tab-panel="data" hidden>
+      <h2>데이터 관리</h2>
+      <form class="data-form" id="data-form">
+        <input type="date" id="data-date" required />
+        <input type="number" id="data-value" step="any" placeholder="값" required />
+        <input type="text" id="data-memo" placeholder="메모 (선택)" />
+        <button type="submit" class="btn" id="data-submit-btn">추가</button>
+        <button type="button" class="btn btn--ghost" id="data-cancel-btn" hidden>취소</button>
+      </form>
+      <div class="data-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>날짜</th>
+              <th>값</th>
+              <th>메모</th>
+              <th>작업</th>
+            </tr>
+          </thead>
+          <tbody id="data-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 대화 기록 -->
+    <section class="panel" data-tab-panel="conversations" hidden>
+      <h2>대화 기록</h2>
+      <ul class="conversation-list" id="conversations-list"></ul>
+    </section>
+
+    <!-- 데이터 요약 -->
+    <section class="panel" data-tab-panel="summary" hidden>
+      <h2>데이터 요약</h2>
+      <div class="summary-cards" id="summary-cards"></div>
+    </section>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/conversations.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
