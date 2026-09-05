@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: ai-agent-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: CODYSSET_API_KEY_OPEN_AI
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: FIRESTORE_DATABASE_ID
+        value: firestore-native-mode
+      - key: CHAT_MODEL
+        value: gpt-5-mini
+      - key: CODYSSEY_BASE_URL
+        value: https://copa.codyssey.kr/v1
+      - key: CHAT_MAX_TOKENS
+        value: "1200"
+      - key: ALLOWED_ORIGINS
+        sync: false
