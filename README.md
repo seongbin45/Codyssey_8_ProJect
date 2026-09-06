@@ -4,6 +4,10 @@
 돌아옵니다. 이 프로젝트는 사용자가 직접 쌓은 시계열 데이터를 분석하고, 그 요약을 AI에게 컨텍스트로
 주입해서, **내 상황을 실제로 아는 AI 비서**와 대화할 수 있게 해주는 풀스택 웹 서비스입니다.
 
+실제 배포된 데모는 삼성전자 2023~2024년 일별 종가 데이터(489건, `data/samsung_2023_2024.csv`)를
+사용한다 — 가짜로 생성한 매출액보다 평가자에게 훨씬 설득력 있는 시연이 되도록, 합성 데이터 생성
+스크립트(`generate_sample_data.py`) 대신 실제 시계열 데이터를 그대로 적재했다.
+
 이 문서는 이 프로젝트를 전혀 모르는 사람이 코드 한 줄 안 보고도 처음부터 똑같이 재구현할 수 있을
 만큼 상세하게 쓰였습니다. "무엇을 만들었는가"뿐 아니라 "왜 이렇게 만들었는가", "만들면서 실제로 어떤
 문제에 부딪혔고 어떻게 고쳤는가"까지 전부 기록했습니다.
@@ -219,32 +223,32 @@ flowchart LR
 **`POST /api/data` 요청 예시**
 ```json
 {
-  "date": "2026-09-01",
-  "value": 5200000,
-  "memo": "정상 영업일"
+  "date": "2024-12-30",
+  "value": 51912,
+  "memo": null
 }
 ```
 **응답 (`DataResponse`)**
 ```json
 {
-  "date": "2026-09-01",
-  "value": 5200000,
-  "memo": "정상 영업일",
+  "date": "2024-12-30",
+  "value": 51912,
+  "memo": null,
   "id": "OOrTEVGU6hbJsfFxaHdd",
-  "created_at": "2026-09-05T16:27:09.270309"
+  "created_at": "2026-09-06T20:07:00.123456"
 }
 ```
 
-**`GET /api/data/summary` 응답 예시**
+**`GET /api/data/summary` 응답 예시** (실제 데모 데이터: 삼성전자 2023~2024 종가)
 ```json
 {
-  "period": "2026-05-09 ~ 2026-09-05",
-  "count": 120,
+  "period": "2023-01-02 ~ 2024-12-30",
+  "count": 489,
   "metrics": {
-    "total": 760620157.0,
-    "average": 6338501.31,
-    "max": 9920824.0,
-    "min": 4280044.0
+    "total": 32395510.0,
+    "average": 66248.49,
+    "max": 84619.0,
+    "min": 48362.0
   },
   "trend": "안정적 (유지)"
 }
@@ -272,7 +276,7 @@ flowchart LR
 **응답**
 ```json
 {
-  "reply": "요약(요청하신 데이터 기반)\n- 기간: 2026-05-09 ~ 2026-09-05\n...",
+  "reply": "요약(요청하신 데이터 기반)\n- 기간: 2023-01-02 ~ 2024-12-30\n...",
   "conversation_id": "yfKt7F119k8ATP87exkY"
 }
 ```
@@ -428,6 +432,19 @@ pip install -r requirements.txt
 
 ### 5단계 — 샘플 데이터 생성 + Firestore 시딩
 
+두 가지 방법 중 하나를 쓴다.
+
+**(A) 실제 데이터 사용 (권장, 이 프로젝트의 실제 데모 데이터)** — 삼성전자 2023~2024년 일별 종가
+489건(`data/samsung_2023_2024.csv`)을 그대로 Firestore에 넣는다. 가짜 데이터보다 시연 설득력이
+훨씬 높다.
+
+```bash
+cd backend
+python import_samsung_data.py   # 기존 data 컬렉션을 비우고 CSV 489건으로 교체
+```
+
+**(B) 합성 데이터 생성** — 랜덤하게 생성한 매출액 시계열이 필요하면:
+
 ```bash
 cd Codyssey_8_ProJect          # 프로젝트 루트
 python generate_sample_data.py   # data/sample_data.json에 120일치 시계열 데이터 생성
@@ -442,8 +459,8 @@ cd backend
 uvicorn main:app --reload --port 8000
 ```
 
-`http://localhost:8000/docs`에서 Swagger UI가 뜨는지, `GET /api/data/summary`가 120건을 반영하는지
-확인합니다.
+`http://localhost:8000/docs`에서 Swagger UI가 뜨는지, `GET /api/data/summary`가 방금 넣은 데이터를
+반영하는지 확인합니다.
 
 ### 7단계 — 프론트엔드 로컬 실행
 
@@ -683,7 +700,8 @@ Codyssey_8_ProJect/
 │   ├── main.py                      # FastAPI 앱 진입점, CORS, 라우터 등록
 │   ├── requirements.txt
 │   ├── runtime.txt                  # Render Python 버전 힌트 (참고용, 실제 적용은 pydantic 버전으로 보장)
-│   ├── seed_data.py                 # data/sample_data.json → Firestore 배치 업로드
+│   ├── import_samsung_data.py       # data/samsung_2023_2024.csv → Firestore 교체 시딩 (실제 데모 데이터)
+│   ├── seed_data.py                 # data/sample_data.json → Firestore 배치 업로드 (합성 데이터용)
 │   ├── e2e_capture.py               # 로컬 환경 Playwright 스크린샷 캡처
 │   ├── e2e_prod_check.py            # 프로덕션 환경 Playwright 검증
 │   ├── routers/
@@ -701,7 +719,9 @@ Codyssey_8_ProJect/
 │   ├── config.js / build.js         # 백엔드 URL 설정 (로컬 기본값 / 빌드 시 주입)
 │   ├── css/style.css                # 라이트/다크 듀얼 테마
 │   └── js/                          # api / theme / chart / chat / data / conversations / app 모듈
-├── data/sample_data.json            # 시계열 샘플 데이터 (120건)
+├── data/
+│   ├── samsung_2023_2024.csv        # 실제 데모 데이터: 삼성전자 2023~2024 일별 종가 489건
+│   └── sample_data.json             # 합성 시계열 샘플 데이터 (120건, generate_sample_data.py 산출물)
 ├── research/                        # 관련 연구 조사 자료 (5개 분야 + 종합)
 ├── screenshots/                     # 제출용 스크린샷 (Playwright 캡처)
 ├── task.md                          # 구현 진행 상황 체크리스트 (버그 수정 이력 포함)

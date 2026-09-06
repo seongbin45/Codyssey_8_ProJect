@@ -41,10 +41,15 @@
       `CHAT_MAX_TOKENS=1200`으로 올리고, 그래도 비면 2배로 한 번 재시도 + 최종 폴백 메시지 추가.
 
 ## Phase 7: 샘플 데이터
-- [x] 시계열 데이터 120개 생성 (`generate_sample_data.py` → `data/sample_data.json`, 2026-05-09~2026-09-05,
-      일별 매출액 테마, 주말 상승/증가 트렌드 반영)
-- [x] 데이터 시딩 스크립트 (`backend/seed_data.py`, Firestore batch write) — 실행 완료, `GET /api/data/summary`로
-      120건 정상 반영 확인
+- [x] 시계열 데이터 120개 생성 (`generate_sample_data.py` → `data/sample_data.json`, 합성 매출액 데이터,
+      초기 개발/테스트 단계에서 사용)
+- [x] 데이터 시딩 스크립트 (`backend/seed_data.py`, Firestore batch write)
+- [x] ⚠️ 평가자 시연용으로 합성 데이터를 실제 데이터로 교체: 이 컴퓨터의 다른 프로젝트 폴더에서 발견한
+      삼성전자 2023~2024 일별 종가 CSV(489건)를 `data/samsung_2023_2024.csv`로 복사해오고,
+      `backend/import_samsung_data.py`(기존 data 컬렉션 삭제 후 CSV로 교체 시딩)를 새로 작성해 실행.
+      local과 production이 같은 Firestore(`FIRESTORE_DATABASE_ID`)를 공유해서 한 번만 실행하면 됨.
+      `GET /api/data/summary`로 489건(2023-01-02~2024-12-30, 평균 66,248, 최대 84,619, 최소 48,362)
+      정상 반영 확인. 스크린샷도 이 데이터로 재캡처(`backend/e2e_capture.py`).
 
 ## Phase 8: 프론트엔드 개발
 - [x] `index.html` — 4탭 구조 (채팅/데이터 관리/대화 기록/데이터 요약)

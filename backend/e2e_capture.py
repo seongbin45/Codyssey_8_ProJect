@@ -19,6 +19,8 @@ def run():
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1280, "height": 950})
 
+        page.on("dialog", lambda d: d.accept())  # 삭제 확인(confirm) 자동 수락
+
         page.goto(FRONTEND_URL)
         page.wait_for_selector("#chat-messages")
         time.sleep(1.5)  # App.boot() 헬스체크 + 초기 데이터 로드 대기
@@ -35,10 +37,12 @@ def run():
         shot(page, "01_chat_summary_qna.png")
 
         # 2) 데이터 관리: 새 데이터 추가 (CRUD 중 1개 동작)
+        # 실제 데이터(삼성전자 종가, 대략 4.8만~8.5만) 범위에 맞는 값을 써야 차트/요약 스케일이
+        # 깨지지 않는다. 캡처 후에는 삭제까지 수행해 최종 데이터셋을 깨끗하게 되돌린다.
         page.click('[data-tab-btn="data"]')
         page.wait_for_selector("#data-table-body tr")
         page.fill("#data-date", "2026-09-07")
-        page.fill("#data-value", "9999999")
+        page.fill("#data-value", "70000")
         page.fill("#data-memo", "playwright 증거용 테스트 입력")
         page.click("#data-submit-btn")
         page.wait_for_function(
@@ -46,6 +50,13 @@ def run():
         )
         time.sleep(0.3)
         shot(page, "02_data_management_add.png")
+
+        # 캡처가 끝났으니 테스트로 추가한 행을 삭제해 데이터셋을 원상 복구 (삭제 CRUD도 함께 검증)
+        test_row = page.locator("#data-table-body tr", has_text="playwright 증거용 테스트 입력")
+        test_row.locator(".btn--danger").click()
+        page.wait_for_function(
+            "() => !document.querySelector('#data-table-body').innerText.includes('playwright 증거용 테스트 입력')"
+        )
 
         # 3) 대화 기록: 목록
         page.click('[data-tab-btn="conversations"]')
