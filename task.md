@@ -70,6 +70,15 @@
       과제 제출 스크린샷 요구사항(질문+답변 포함 채팅 화면 / CRUD 1개 동작 / 불러오기 동작)을 그대로 충족.
 
 ## Phase 10~12: 배포 + 문서화
-- [ ] Render 배포
-- [ ] Vercel 배포
-- [ ] README.md 작성
+- [x] git 저장소 초기화 + GitHub 푸시 (`github.com/seongbin45/Codyssey_8_ProJect`)
+- [x] Render 백엔드 배포 — https://codyssey-8-project.onrender.com
+      - ⚠️ 버그: Render가 기본 Python 3.14를 쓰는데 `pydantic-core==2.20.0`(pydantic 2.8.0 고정)이
+        cp314 prebuilt wheel이 없어 Rust 소스 빌드 시도 → read-only 파일시스템에서 실패.
+        `pydantic==2.13.5`(→ pydantic-core 2.46.5, cp314 wheel 존재)로 올려서 해결.
+        (`render.yaml`의 `PYTHON_VERSION` 지정은 대시보드에서 수동 생성한 서비스엔 적용 안 됨 — 참고용)
+- [x] Vercel 프론트엔드 배포 — https://codyssey-8-pro-ject.vercel.app
+      - `frontend/build.js`가 빌드 시 `API_BASE_URL` 환경변수를 `config.js`에 주입
+- [x] CORS 연동 확인 — Render `ALLOWED_ORIGINS`에 Vercel 도메인 추가 후 preflight/실제 요청 모두 200 확인
+- [x] 프로덕션 end-to-end 검증 (`backend/e2e_prod_check.py`, Playwright) — 실배포 사이트에서 채팅 응답,
+      데이터 120건 로드, 요약 카드까지 정상 동작 확인
+- [x] README.md 작성 (배포 URL, 기술스택, 스크린샷, 로컬 실행법, 환경변수, 관련 연구 링크 포함)
