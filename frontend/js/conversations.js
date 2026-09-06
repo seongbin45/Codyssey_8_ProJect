@@ -1,4 +1,4 @@
-// 대화 기록 목록 + 불러오기 UI 로직
+// 대화 기록 목록 + 불러오기 + 삭제
 const Conversations = (() => {
   const els = {};
 
@@ -19,7 +19,7 @@ const Conversations = (() => {
       await API.deleteConversation(id);
       await refresh();
     } catch (err) {
-      alert(`삭제 실패: ${err.message}`);
+      App.showBanner("error", "삭제 실패: " + err.message);
     }
   }
 
@@ -29,51 +29,54 @@ const Conversations = (() => {
       Chat.loadConversation(conversation);
       Tabs.activate("chat");
     } catch (err) {
-      alert(`불러오기 실패: ${err.message}`);
+      App.showBanner("error", "불러오기 실패: " + err.message);
     }
   }
 
   function render(items) {
     els.list.innerHTML = "";
-    if (items.length === 0) {
-      els.list.innerHTML = `<li class="empty-row">저장된 대화가 없어요.</li>`;
+    if (!items.length) {
+      els.list.innerHTML = '<li class="empty">저장된 대화가 없어요. 채팅 탭에서 첫 질문을 보내보세요.</li>';
       return;
     }
 
     const sorted = [...items].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-    for (const item of sorted) {
+    sorted.forEach((item) => {
+      const count = (item.messages || []).filter((m) => m.role !== "system").length;
       const li = document.createElement("li");
       li.className = "conversation-item";
-      li.innerHTML = `
-        <div class="conversation-item__main">
-          <span class="conversation-item__title"></span>
-          <span class="conversation-item__date">${formatDate(item.created_at)}</span>
-        </div>
-        <div class="conversation-item__actions"></div>
-      `;
-      li.querySelector(".conversation-item__title").textContent = item.title;
+      li.innerHTML =
+        '<div class="conversation-item__main">' +
+        '<span class="conversation-item__title"></span>' +
+        '<span class="conversation-item__meta"></span>' +
+        "</div>" +
+        '<div class="conversation-item__actions"></div>';
+      li.querySelector(".conversation-item__title").textContent = item.title || "제목 없음";
+      li.querySelector(".conversation-item__meta").textContent =
+        formatDate(item.created_at) + (count ? " · " + count + " messages" : "");
 
       const loadBtn = document.createElement("button");
+      loadBtn.type = "button";
+      loadBtn.className = "btn btn--soft";
       loadBtn.textContent = "불러오기";
-      loadBtn.className = "btn btn--ghost btn--sm";
       loadBtn.addEventListener("click", () => openConversation(item.id));
 
       const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "btn btn--danger";
       delBtn.textContent = "삭제";
-      delBtn.className = "btn btn--danger btn--sm";
       delBtn.addEventListener("click", () => removeConversation(item.id));
 
       const actions = li.querySelector(".conversation-item__actions");
       actions.appendChild(loadBtn);
       actions.appendChild(delBtn);
-
       els.list.appendChild(li);
-    }
+    });
   }
 
   async function refresh() {
     const items = await API.getConversations();
-    render(items);
+    render(items || []);
   }
 
   return { init, refresh };

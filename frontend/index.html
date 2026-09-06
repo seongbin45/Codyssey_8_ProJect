@@ -1,80 +1,175 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>내 데이터를 아는 AI 비서</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div class="app">
     <header class="app-header">
-      <div>
-        <h1>내 데이터를 아는 AI 비서</h1>
-        <p>시계열 데이터를 분석하고, 그 결과를 바탕으로 대화하는 AI 서비스</p>
+      <div class="brand">
+        <div class="brand__mark">D</div>
+        <div>
+          <h1>내 데이터를 아는 AI 비서</h1>
+          <p>시계열 데이터 요약을 컨텍스트로 주입해 대화하는 서비스</p>
+        </div>
+      </div>
+      <div class="app-header__actions">
+        <div class="status" id="api-status">
+          <span class="status__dot" id="api-status-dot"></span>
+          <span class="status__text" id="api-status-text">API 확인 중</span>
+        </div>
+        <button type="button" class="btn btn--ghost btn--mono" id="theme-btn" aria-label="테마 전환">DARK</button>
       </div>
     </header>
 
-    <nav class="tab-bar">
-      <button class="tab-btn" data-tab-btn="chat">채팅</button>
-      <button class="tab-btn" data-tab-btn="data">데이터 관리</button>
-      <button class="tab-btn" data-tab-btn="conversations">대화 기록</button>
-      <button class="tab-btn" data-tab-btn="summary">데이터 요약</button>
+    <!-- 콜드스타트 / 오프라인 안내 (요구사항: 무료 티어 첫 요청 지연 안내) -->
+    <div class="banner" id="banner" role="status" hidden>
+      <span class="banner__tag" id="banner-tag"></span>
+      <p class="banner__text" id="banner-text"></p>
+      <button type="button" class="btn btn--ghost btn--sm" id="banner-action"></button>
+    </div>
+
+    <nav class="tab-bar" role="tablist" aria-label="화면 전환">
+      <button class="tab-btn" role="tab" data-tab-btn="chat" aria-selected="false" aria-controls="panel-chat">
+        <span class="tab-btn__label">채팅</span><span class="tab-btn__hint">AI 대화</span>
+      </button>
+      <button class="tab-btn" role="tab" data-tab-btn="data" aria-selected="false" aria-controls="panel-data">
+        <span class="tab-btn__label">데이터 관리</span><span class="tab-btn__hint">CRUD</span>
+      </button>
+      <button class="tab-btn" role="tab" data-tab-btn="conversations" aria-selected="false" aria-controls="panel-conversations">
+        <span class="tab-btn__label">대화 기록</span><span class="tab-btn__hint">불러오기</span>
+      </button>
+      <button class="tab-btn" role="tab" data-tab-btn="summary" aria-selected="false" aria-controls="panel-summary">
+        <span class="tab-btn__label">데이터 요약</span><span class="tab-btn__hint">통계 · 그래프</span>
+      </button>
     </nav>
 
-    <!-- 채팅 인터페이스 -->
-    <section class="panel chat-panel" data-tab-panel="chat" hidden>
-      <div class="chat-panel__header">
-        <h2>AI 채팅</h2>
-        <button class="btn btn--ghost btn--sm" id="chat-new-btn">새 대화</button>
+    <!-- 채팅 -->
+    <section class="chat-layout" id="panel-chat" role="tabpanel" aria-label="채팅" data-tab-panel="chat" hidden>
+      <div class="card chat-panel">
+        <div class="card__head">
+          <div class="card__head-main">
+            <h2>AI 채팅</h2>
+            <span class="chip chip--accent" id="chat-conv-id">새 대화</span>
+          </div>
+          <button type="button" class="btn btn--ghost btn--sm" id="chat-new-btn">새 대화</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-composer">
+          <div class="suggestions" id="chat-suggestions"></div>
+          <form class="chat-form" id="chat-form">
+            <input type="text" id="chat-input" aria-label="메시지 입력" autocomplete="off"
+              placeholder="데이터에 대해 물어보세요 (예: 이번 달 실적이 어때?)" />
+            <button type="submit" class="btn">전송</button>
+          </form>
+        </div>
       </div>
-      <div class="chat-messages" id="chat-messages"></div>
-      <form class="chat-form" id="chat-form">
-        <input type="text" id="chat-input" placeholder="데이터에 대해 물어보세요 (예: 이번 달 실적이 어때?)" autocomplete="off" />
-        <button type="submit" class="btn">전송</button>
-      </form>
+
+      <aside class="chat-aside">
+        <div class="card card--pad">
+          <div class="card__head card__head--tight">
+            <h3>AI에게 주입된 컨텍스트</h3>
+            <button type="button" class="btn btn--ghost btn--xs" id="ctx-toggle">원문 보기</button>
+          </div>
+          <dl class="ctx-rows" id="ctx-rows"></dl>
+          <pre class="ctx-prompt" id="ctx-prompt" hidden></pre>
+          <p class="note">이 요약은 대화 시작 시점에 system 메시지로 한 번 삽입됩니다. 데이터가 바뀌면 새 대화를 시작하세요.</p>
+        </div>
+        <div class="card card--pad">
+          <h3>최근 120일 추이</h3>
+          <div class="spark" id="spark"></div>
+          <button type="button" class="btn btn--ghost" data-goto="summary">데이터 요약 자세히 보기</button>
+        </div>
+      </aside>
     </section>
 
     <!-- 데이터 관리 -->
-    <section class="panel" data-tab-panel="data" hidden>
-      <h2>데이터 관리</h2>
+    <section class="card card--pad" id="panel-data" role="tabpanel" aria-label="데이터 관리" data-tab-panel="data" hidden>
+      <div class="card__head">
+        <div>
+          <h2>데이터 관리</h2>
+          <p class="note" id="data-count">불러오는 중…</p>
+        </div>
+        <div class="row-gap">
+          <button type="button" class="btn btn--ghost btn--mono" id="export-csv">CSV 내보내기</button>
+          <button type="button" class="btn btn--ghost btn--mono" id="export-json">JSON 내보내기</button>
+        </div>
+      </div>
+
       <form class="data-form" id="data-form">
-        <input type="date" id="data-date" required />
-        <input type="number" id="data-value" step="any" placeholder="값" required />
-        <input type="text" id="data-memo" placeholder="메모 (선택)" />
-        <button type="submit" class="btn" id="data-submit-btn">추가</button>
-        <button type="button" class="btn btn--ghost" id="data-cancel-btn" hidden>취소</button>
+        <label><span>DATE</span><input type="date" id="data-date" required /></label>
+        <label><span>VALUE</span><input type="number" id="data-value" step="any" placeholder="0" required /></label>
+        <label class="grow"><span>MEMO</span><input type="text" id="data-memo" placeholder="메모 (선택)" /></label>
+        <div class="data-form__actions">
+          <button type="submit" class="btn" id="data-submit-btn">추가</button>
+          <button type="button" class="btn btn--ghost" id="data-cancel-btn" hidden>취소</button>
+        </div>
       </form>
-      <div class="data-table-wrap">
+
+      <div class="table-wrap">
         <table>
           <thead>
-            <tr>
-              <th>날짜</th>
-              <th>값</th>
-              <th>메모</th>
-              <th>작업</th>
-            </tr>
+            <tr><th>날짜</th><th class="num">값</th><th>메모</th><th class="num">작업</th></tr>
           </thead>
           <tbody id="data-table-body"></tbody>
         </table>
       </div>
+      <p class="note mono">PUT /api/data/{id} · DELETE /api/data/{id}</p>
     </section>
 
     <!-- 대화 기록 -->
-    <section class="panel" data-tab-panel="conversations" hidden>
-      <h2>대화 기록</h2>
+    <section class="card card--pad" id="panel-conversations" role="tabpanel" aria-label="대화 기록" data-tab-panel="conversations" hidden>
+      <div>
+        <h2>대화 기록</h2>
+        <p class="note">불러오면 같은 conversation_id로 대화가 이어집니다.</p>
+      </div>
       <ul class="conversation-list" id="conversations-list"></ul>
     </section>
 
     <!-- 데이터 요약 -->
-    <section class="panel" data-tab-panel="summary" hidden>
-      <h2>데이터 요약</h2>
-      <div class="summary-cards" id="summary-cards"></div>
+    <section id="panel-summary" role="tabpanel" aria-label="데이터 요약" data-tab-panel="summary" hidden>
+      <div class="card card--pad">
+        <div class="card__head">
+          <div>
+            <h2>데이터 요약</h2>
+            <p class="note">GET /api/data/summary — 프롬프트에 주입되는 값과 동일</p>
+          </div>
+          <span class="chip chip--accent" id="trend-chip">TREND</span>
+        </div>
+        <div class="summary-cards" id="summary-cards"></div>
+      </div>
+
+      <div class="card card--pad">
+        <div class="card__head">
+          <h3>값 추이</h3>
+          <div class="segmented" role="group" aria-label="기간 선택" id="range-group">
+            <button type="button" data-range="30" aria-pressed="false">30일</button>
+            <button type="button" data-range="60" aria-pressed="false">60일</button>
+            <button type="button" data-range="0" aria-pressed="true">전체</button>
+          </div>
+        </div>
+        <div class="chart" id="chart"></div>
+        <div class="chart-x" id="chart-x"></div>
+        <p class="note" id="chart-note"></p>
+      </div>
     </section>
+
+    <footer class="app-footer">
+      <span class="mono">vanilla HTML / CSS / JS · no framework</span>
+      <span class="mono" id="api-base-label"></span>
+    </footer>
   </div>
 
   <script src="config.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/chart.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/data.js"></script>
   <script src="js/conversations.js"></script>

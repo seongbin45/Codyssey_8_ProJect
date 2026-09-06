@@ -17,7 +17,7 @@ with sync_playwright() as p:
 
     page.fill("#chat-input", "production check: what's the trend?")
     page.click("#chat-form button[type=submit]")
-    page.wait_for_selector(".chat-bubble--assistant:not(.chat-bubble--loading)", timeout=30000)
+    page.wait_for_selector(".msg--assistant .msg__bubble", timeout=30000)
     time.sleep(0.5)
 
     reply_text = page.inner_text("#chat-messages")

@@ -44,14 +44,14 @@
 
 ### 스크린샷 (실제 배포 사이트를 Playwright로 직접 조작해서 캡처한 증거)
 
-**1. 데이터 요약이 반영된 AI 채팅** — 사용자의 질문과, `GET /api/data/summary`로 계산된 실제 통계
-(기간 2026-05-09~2026-09-05, 120개 레코드, 평균 6,338,501.31 등)를 근거로 답하는 AI의 응답이 함께
-보인다.
+**1. 데이터 요약이 반영된 AI 채팅** — 사용자의 질문(USER)과, `GET /api/data/summary`로 계산된 실제
+통계를 근거로 답하는 AI의 응답(ASSISTANT)이 함께 보인다. 오른쪽에는 "AI에게 주입된 컨텍스트" 패널이
+있어 이번 대화에 실제로 삽입된 system prompt 원문을 그대로 펼쳐볼 수 있다.
 
 ![채팅 화면](screenshots/01_chat_summary_qna.png)
 
 **2. 데이터 관리 (CRUD)** — 상단 입력 폼으로 새 데이터를 추가하면(날짜/값/메모), 즉시 테이블 맨 위에
-반영된다. 각 행에는 수정/삭제 버튼이 있다.
+반영된다. 각 행에는 수정/삭제 버튼이 있고, CSV/JSON 내보내기 버튼도 있다.
 
 ![데이터 관리 화면](screenshots/02_data_management_add.png)
 
@@ -60,17 +60,24 @@
 ![대화 기록 목록](screenshots/03_conversations_list.png)
 
 **4. 대화 불러오기** — "불러오기"를 누르면 채팅 탭으로 자동 전환되면서 해당 대화의 전체 메시지가
-그대로 복원되고, 그 상태에서 이어서 대화할 수 있다(`conversation_id`가 유지됨).
+그대로 복원되고, 그 상태에서 이어서 대화할 수 있다(`conversation_id`가 유지됨). 첫 번째 어시스턴트
+메시지 아래에는 "TOOL CALL TRACE"로 이 답변이 만들어진 3단계(요약 조회 → 프롬프트 주입 → LLM 호출)를
+표시한다.
 
 ![대화 불러오기](screenshots/04_conversation_loaded_in_chat.png)
 
-**5. 데이터 요약 카드** — 기간/개수/평균/최대/최소/최근 트렌드를 카드 형태로 한눈에 보여준다.
+**5. 데이터 요약 카드 + 추이 그래프** — 기간/개수/총합/평균/최대/최소/표준편차 7개 카드와, 라이브러리
+없이 순수 SVG로 그린 값 추이 라인차트(30일/60일/전체 구간 전환, 전체 평균 점선 포함)를 보여준다.
 
 ![데이터 요약 화면](screenshots/05_data_summary.png)
 
-이 5장은 `backend/e2e_capture.py`(로컬)와 `backend/e2e_prod_check.py`(프로덕션)라는 Playwright
-스크립트로 실제 브라우저를 띄워 클릭·입력까지 수행한 뒤 캡처한 것이며, 수동으로 사람이 찍은 게
-아니라 코드로 재현 가능하다.
+**6. 다크 모드 (보너스)** — 우측 상단 버튼으로 라이트/다크 테마를 전환할 수 있고, 선택값은
+`localStorage`에 유지된다.
+
+![다크 모드](screenshots/06_dark_mode.png)
+
+이 6장은 `backend/e2e_capture.py`라는 Playwright 스크립트로 실제 브라우저를 띄워 클릭·입력까지
+수행한 뒤 캡처한 것이며, 수동으로 사람이 찍은 게 아니라 코드로 재현 가능하다.
 
 ---
 
@@ -172,9 +179,26 @@ flowchart LR
 
 ### 4. 데이터 요약
 
-- `GET /api/data/summary` 응답을 그대로 카드 6개(기간/개수/평균/최대/최소/트렌드)로 렌더링
+- `GET /api/data/summary` 응답을 카드 7개(기간/개수/총합/평균/최대/최소/표준편차)로 렌더링
+- 표준편차는 백엔드가 아직 계산하지 않으므로(`metrics.std_dev` 없음), 프론트엔드가 전체 데이터 목록을
+  받아 클라이언트에서 직접 계산한다 (`frontend/js/data.js`의 `stdDev()`). 나중에 백엔드가
+  `std_dev`를 내려주기 시작하면 그 값을 우선 사용하도록 이미 분기 처리되어 있다
 - 트렌드 판정 로직: 데이터가 10개 이상일 때, 최근 5개 평균과 그 이전 5개 평균을 비교해서
   +5% 이상이면 "상승세", -5% 이하이면 "하락세", 그 사이면 "안정적(유지)"
+- 순수 SVG(라이브러리 없음)로 그린 라인차트가 카드 아래에 함께 표시되며, 30일/60일/전체 구간을
+  전환할 수 있고 전체 평균을 점선으로 표시한다
+
+### 5. 보너스 기능
+
+과제의 "인사이트·UX 고도화" 보너스 항목을 프론트엔드에서 구현했다.
+
+| 항목 | 구현 |
+|---|---|
+| 시각화 (그래프 1개) | `frontend/js/chart.js` — 라이브러리 없는 순수 SVG 라인차트. 채팅 탭의 스파크라인과 요약 탭의 상세 차트에 재사용 |
+| 데이터 내보내기 | 데이터 관리 탭의 "CSV 내보내기" / "JSON 내보내기" 버튼 (`Blob` + `URL.createObjectURL`로 클라이언트에서 직접 생성) |
+| 다크 모드 토글 | `frontend/js/theme.js` — `localStorage`에 선택값 유지, `prefers-color-scheme` 감지 |
+| 추가 지표 1개 이상 | 요약 카드에 총합(TOTAL)·표준편차(STD DEV) 추가 |
+| Function Calling 근거 표시 | 채팅 응답에 "TOOL CALL TRACE"로 `GET /api/data/summary → system prompt 주입 → POST /v1/chat/completions` 3단계를 표시. **다만 이건 고정된 흐름을 시각화한 것일 뿐, LLM이 실제로 도구를 스스로 선택해 호출하는 진짜 Function Calling은 아니다** (백엔드에 그 기능이 없음 — [관련 연구](#관련-연구)의 "LLM 에이전트 + 도구 호출" 섹션이 실제로 구현하려면 참고할 패턴들을 정리해 두었다) |
 
 ---
 
@@ -332,22 +356,32 @@ frontend/
 ├── index.html          # 4개 탭 패널을 가진 단일 페이지
 ├── config.js            # window.APP_CONFIG.API_BASE_URL (로컬 기본값)
 ├── build.js              # Vercel 빌드 시 config.js를 환경변수 값으로 재생성
-├── css/style.css          # 다크 글래스모피즘 테마
+├── css/style.css          # 라이트/다크 듀얼 테마 (oklch 색상, Public Sans + IBM Plex Mono)
 └── js/
-    ├── api.js              # fetch 래퍼 — 모든 백엔드 호출이 이 모듈을 통과
-    ├── chat.js              # 채팅 탭: 메시지 렌더링, 전송, 로딩 상태
-    ├── data.js               # 데이터 탭: CRUD 폼 + 테이블 + 요약 카드
-    ├── conversations.js       # 대화 기록 탭: 목록 + 불러오기 + 삭제
-    └── app.js                  # 탭 전환(Tabs 모듈) + 앱 초기화 엔트리포인트
+    ├── api.js              # fetch 래퍼 + 헬스체크(콜드스타트 감지) — 모든 백엔드 호출이 이 모듈을 통과
+    ├── theme.js             # 라이트/다크 테마 토글, localStorage 유지
+    ├── chart.js              # 라이브러리 없는 순수 SVG 라인차트 (스파크라인 + 상세 차트 공용)
+    ├── chat.js                # 채팅 탭: 메시지 렌더링, 전송, 컨텍스트 패널, 도구 호출 트레이스
+    ├── data.js                 # 데이터 탭: CRUD 폼 + 테이블 + 요약 카드 + 차트 + CSV/JSON 내보내기
+    ├── conversations.js         # 대화 기록 탭: 목록 + 불러오기 + 삭제
+    └── app.js                    # 탭 전환(Tabs) + 상태 배너(App) + 앱 초기화 엔트리포인트
 ```
 
 **탭 전환 방식**: 각 패널 `<section>`에 `data-tab-panel="이름"` 속성과 `hidden` 어트리뷰트를 부여하고,
-`Tabs.activate(name)`이 `panels[key].hidden = key !== name`으로 토글한다. CSS에는 반드시
-`[hidden] { display: none !important; }` 규칙이 있어야 한다 — 없으면 `.chat-panel { display: flex }`
-같은 다른 규칙과 우선순위가 같아서 `hidden`이 무시될 수 있다 (실제로 겪은 버그, 아래 트러블슈팅 참고).
+`Tabs.activate(name)`이 `panels[key].hidden = !on`으로 토글하면서 `role="tab"`의 `aria-selected`와
+`tabIndex`도 함께 갱신한다. 좌우 화살표 키로 탭 간 이동도 지원한다(`ArrowLeft`/`ArrowRight`). CSS에는
+반드시 `[hidden] { display: none !important; }` 규칙이 있어야 한다 — 없으면 `.chat-panel { display:
+flex }` 같은 다른 규칙과 우선순위가 같아서 `hidden`이 무시될 수 있다 (실제로 겪은 버그, 아래
+트러블슈팅 참고).
+
+**콜드스타트/오류 배너**: `App.boot()`가 앱 시작 시 `API.health()`로 백엔드 `GET /`을 호출해 응답
+시간을 측정한다. 3초를 넘으면 Render 무료 티어 콜드스타트로 간주해 안내 배너를 띄우고, 아예 실패하면
+"OFFLINE" 배너 + 재시도 버튼을 보여준다. 초기 데이터 로드(`DataView.refresh()` /
+`Conversations.refresh()`)가 실패했을 때도 같은 배너로 사용자에게 알린다(과거에는 `console.error`만
+찍고 화면은 무반응이었던 문제를 수정함, 아래 트러블슈팅 참고).
 
 **상태 관리**: 별도 상태 관리 라이브러리 없이, 각 모듈의 클로저 변수(`currentConversationId`,
-`editingId` 등)로 최소한의 상태만 들고 있다.
+`editingId`, `items`, `summary` 등)로 최소한의 상태만 들고 있다.
 
 ---
 
@@ -610,6 +644,16 @@ Render가 Web Service의 기본 Python 버전으로 (당시) 최신인 3.14를 �
 못했다 (공인 사이트는 정상 접속). 반면 Playwright로 직접 띄운 Chromium은 같은 프로세스 환경에서
 실행되어 로컬 서버에 정상 접근할 수 있었다. **해결**: E2E 검증은 Playwright 스크립트로 전환.
 
+### 10. 코드베이스 교차검증으로 드러난 요구사항 누락 2건
+1차 배포 이후 프론트엔드 코드베이스와 과제 원문을 다시 교차검증한 결과, 문서(README)에는 콜드스타트
+안내가 있었지만 **실제 화면에는 없었고**, 초기 데이터 로드가 실패하면 `console.error`만 찍힐 뿐
+화면은 조용히 멈춰 있었다(사용자에게 아무 피드백이 없음 — 과제의 "최소한의 예외 처리" 요구사항
+미충족). 이 지적을 계기로 프론트엔드를 라이트 우선 테마로 전면 재설계하면서: (1) `API.health()`로
+콜드스타트를 실제로 감지해 화면에 배너로 안내, (2) 초기 로드/저장/삭제 실패 시 전부 화면 배너로
+표시하도록 고쳤다. 재설계 과정에서 별도로 작업된 코드(zip)를 넘겨받아 실제 API 계약과 한 줄씩
+대조 검증한 뒤 통합했다 — "다른 곳에서 작업된 코드"라는 주장을 그대로 믿지 않고, 실제로 그 코드가
+존재하는지·우리 백엔드와 정확히 맞물리는지를 직접 확인하고 나서야 적용한 것이 핵심이었다.
+
 ---
 
 ## 관련 연구
@@ -655,8 +699,8 @@ Codyssey_8_ProJect/
 ├── frontend/
 │   ├── index.html                   # 4탭 SPA 구조
 │   ├── config.js / build.js         # 백엔드 URL 설정 (로컬 기본값 / 빌드 시 주입)
-│   ├── css/style.css                # 다크 글래스모피즘 테마
-│   └── js/                          # api / chat / data / conversations / app 모듈
+│   ├── css/style.css                # 라이트/다크 듀얼 테마
+│   └── js/                          # api / theme / chart / chat / data / conversations / app 모듈
 ├── data/sample_data.json            # 시계열 샘플 데이터 (120건)
 ├── research/                        # 관련 연구 조사 자료 (5개 분야 + 종합)
 ├── screenshots/                     # 제출용 스크린샷 (Playwright 캡처)
