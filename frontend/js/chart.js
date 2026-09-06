@@ -64,10 +64,13 @@ const Chart = (() => {
     if (!host) return;
     host.innerHTML = "";
     if (!rows.length) return;
+    // 여러 해에 걸친 구간이면 "MM-DD"만으로는 같은 라벨이 반복돼 보이므로 "YYYY-MM"으로 표시한다.
+    const spansMultipleYears = rows[0].date.slice(0, 4) !== rows[rows.length - 1].date.slice(0, 4);
     const idx = [0, Math.floor(rows.length / 3), Math.floor((rows.length * 2) / 3), rows.length - 1];
     idx.forEach((i) => {
       const s = document.createElement("span");
-      s.textContent = rows[i] ? rows[i].date.slice(5) : "";
+      const d = rows[i] ? rows[i].date : "";
+      s.textContent = spansMultipleYears ? d.slice(0, 7) : d.slice(5);
       host.appendChild(s);
     });
   }

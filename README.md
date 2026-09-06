@@ -4,9 +4,12 @@
 돌아옵니다. 이 프로젝트는 사용자가 직접 쌓은 시계열 데이터를 분석하고, 그 요약을 AI에게 컨텍스트로
 주입해서, **내 상황을 실제로 아는 AI 비서**와 대화할 수 있게 해주는 풀스택 웹 서비스입니다.
 
-실제 배포된 데모는 삼성전자 2023~2024년 일별 종가 데이터(489건, `data/samsung_2023_2024.csv`)를
-사용한다 — 가짜로 생성한 매출액보다 평가자에게 훨씬 설득력 있는 시연이 되도록, 합성 데이터 생성
-스크립트(`generate_sample_data.py`) 대신 실제 시계열 데이터를 그대로 적재했다.
+실제 배포된 데모는 삼성전자 2020~2026년 일별 종가 데이터(6년치, 1,467건,
+`data/samsung_2020_2026.csv`)를 사용한다 — 가짜로 생성한 매출액보다 평가자에게 훨씬 설득력 있는
+시연이 되도록, 합성 데이터 생성 스크립트(`generate_sample_data.py`) 대신 Yahoo Finance에서 직접 받은
+실제 시계열 데이터를 그대로 적재했다. 2년치로는 장기 추세 분석에 부족하다고 판단해 처음엔 2023~2024
+2년치로 시작했다가 6년치로 다시 교체했다 (아래 [트러블슈팅](#실제로-겪은-문제와-해결-트러블슈팅-기록)
+11번 참고).
 
 이 문서는 이 프로젝트를 전혀 모르는 사람이 코드 한 줄 안 보고도 처음부터 똑같이 재구현할 수 있을
 만큼 상세하게 쓰였습니다. "무엇을 만들었는가"뿐 아니라 "왜 이렇게 만들었는가", "만들면서 실제로 어떤
@@ -223,32 +226,32 @@ flowchart LR
 **`POST /api/data` 요청 예시**
 ```json
 {
-  "date": "2024-12-30",
-  "value": 51912,
+  "date": "2026-09-04",
+  "value": 255500,
   "memo": null
 }
 ```
 **응답 (`DataResponse`)**
 ```json
 {
-  "date": "2024-12-30",
-  "value": 51912,
+  "date": "2026-09-04",
+  "value": 255500,
   "memo": null,
   "id": "OOrTEVGU6hbJsfFxaHdd",
   "created_at": "2026-09-06T20:07:00.123456"
 }
 ```
 
-**`GET /api/data/summary` 응답 예시** (실제 데모 데이터: 삼성전자 2023~2024 종가)
+**`GET /api/data/summary` 응답 예시** (실제 데모 데이터: 삼성전자 2020~2026 종가, 6년치)
 ```json
 {
-  "period": "2023-01-02 ~ 2024-12-30",
-  "count": 489,
+  "period": "2020-09-04 ~ 2026-09-04",
+  "count": 1467,
   "metrics": {
-    "total": 32395510.0,
-    "average": 66248.49,
-    "max": 84619.0,
-    "min": 48362.0
+    "total": 130264100.0,
+    "average": 88796.25,
+    "max": 362500.0,
+    "min": 49900.0
   },
   "trend": "안정적 (유지)"
 }
@@ -276,7 +279,7 @@ flowchart LR
 **응답**
 ```json
 {
-  "reply": "요약(요청하신 데이터 기반)\n- 기간: 2023-01-02 ~ 2024-12-30\n...",
+  "reply": "요약(요청하신 데이터 기반)\n- 기간: 2020-09-04 ~ 2026-09-04\n...",
   "conversation_id": "yfKt7F119k8ATP87exkY"
 }
 ```
@@ -434,13 +437,14 @@ pip install -r requirements.txt
 
 두 가지 방법 중 하나를 쓴다.
 
-**(A) 실제 데이터 사용 (권장, 이 프로젝트의 실제 데모 데이터)** — 삼성전자 2023~2024년 일별 종가
-489건(`data/samsung_2023_2024.csv`)을 그대로 Firestore에 넣는다. 가짜 데이터보다 시연 설득력이
-훨씬 높다.
+**(A) 실제 데이터 사용 (권장, 이 프로젝트의 실제 데모 데이터)** — 삼성전자 2020~2026년 일별 종가
+6년치 1,467건(`data/samsung_2020_2026.csv`)을 그대로 Firestore에 넣는다. 가짜 데이터보다 시연
+설득력이 훨씬 높고, 2년치보다 장기 추세 분석에 적합하다.
 
 ```bash
 cd backend
-python import_samsung_data.py   # 기존 data 컬렉션을 비우고 CSV 489건으로 교체
+python fetch_samsung_data.py    # (선택) Yahoo Finance에서 최신 데이터를 다시 받아 CSV 갱신
+python import_samsung_data.py   # 기존 data 컬렉션을 비우고 CSV로 교체
 ```
 
 **(B) 합성 데이터 생성** — 랜덤하게 생성한 매출액 시계열이 필요하면:
@@ -671,6 +675,17 @@ Render가 Web Service의 기본 Python 버전으로 (당시) 최신인 3.14를 �
 대조 검증한 뒤 통합했다 — "다른 곳에서 작업된 코드"라는 주장을 그대로 믿지 않고, 실제로 그 코드가
 존재하는지·우리 백엔드와 정확히 맞물리는지를 직접 확인하고 나서야 적용한 것이 핵심이었다.
 
+### 11. 2년치 데이터로는 장기 추세 분석에 부족 → 6년치 실데이터로 교체하며 차트 라벨 버그 발견
+데모 데이터로 처음 쓴 삼성전자 CSV가 2년치(489건)뿐이라 장기 추세를 보여주기엔 부족하다는 지적을
+받았다. 이 컴퓨터와 형제 프로젝트를 뒤져봤지만 더 긴 기간의 로컬 파일은 없었고, 이 환경에서
+Yahoo Finance Chart API(`query1.finance.yahoo.com`)에 직접 네트워크 접근이 되는 걸 확인해
+`fetch_samsung_data.py`(표준 라이브러리 `urllib`만 사용, 외부 패키지 불필요)로 6년치
+1,467건(2020-09-04~2026-09-04)을 새로 받았다. 데이터를 교체하고 화면을 다시 캡처하는 과정에서
+실제 버그를 하나 더 발견했다: `frontend/js/chart.js`의 x축 라벨이 `date.slice(5)`로 "MM-DD"만
+잘라 썼는데, 여러 해에 걸친 구간에서는 "09-04"가 여러 지점에서 반복돼 마치 같은 날짜처럼 보이는
+문제가 있었다. **해결**: 라벨 배열의 첫 값과 마지막 값의 연도가 다르면 "YYYY-MM" 형식으로 표시하도록
+분기 처리(`xLabels()`에 `spansMultipleYears` 체크 추가).
+
 ---
 
 ## 관련 연구
@@ -700,7 +715,8 @@ Codyssey_8_ProJect/
 │   ├── main.py                      # FastAPI 앱 진입점, CORS, 라우터 등록
 │   ├── requirements.txt
 │   ├── runtime.txt                  # Render Python 버전 힌트 (참고용, 실제 적용은 pydantic 버전으로 보장)
-│   ├── import_samsung_data.py       # data/samsung_2023_2024.csv → Firestore 교체 시딩 (실제 데모 데이터)
+│   ├── fetch_samsung_data.py        # Yahoo Finance → data/samsung_2020_2026.csv (6년치 재수집)
+│   ├── import_samsung_data.py       # data/samsung_2020_2026.csv → Firestore 교체 시딩 (실제 데모 데이터)
 │   ├── seed_data.py                 # data/sample_data.json → Firestore 배치 업로드 (합성 데이터용)
 │   ├── e2e_capture.py               # 로컬 환경 Playwright 스크린샷 캡처
 │   ├── e2e_prod_check.py            # 프로덕션 환경 Playwright 검증
@@ -720,7 +736,7 @@ Codyssey_8_ProJect/
 │   ├── css/style.css                # 라이트/다크 듀얼 테마
 │   └── js/                          # api / theme / chart / chat / data / conversations / app 모듈
 ├── data/
-│   ├── samsung_2023_2024.csv        # 실제 데모 데이터: 삼성전자 2023~2024 일별 종가 489건
+│   ├── samsung_2020_2026.csv        # 실제 데모 데이터: 삼성전자 2020~2026 일별 종가 6년치 1,467건
 │   └── sample_data.json             # 합성 시계열 샘플 데이터 (120건, generate_sample_data.py 산출물)
 ├── research/                        # 관련 연구 조사 자료 (5개 분야 + 종합)
 ├── screenshots/                     # 제출용 스크린샷 (Playwright 캡처)

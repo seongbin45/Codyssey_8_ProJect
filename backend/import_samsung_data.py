@@ -1,6 +1,7 @@
 """
-data/samsung_2023_2024.csv (실제 삼성전자 주가) 를 Firestore `data` 컬렉션으로 교체 시딩한다.
-기존 data 컬렉션 문서를 전부 삭제하고, CSV의 date/close를 date/value로 매핑해 새로 넣는다.
+data/samsung_2020_2026.csv (Yahoo Finance에서 받은 실제 삼성전자 6년치 종가,
+fetch_samsung_data.py 산출물) 를 Firestore `data` 컬렉션으로 교체 시딩한다.
+기존 data 컬렉션 문서를 전부 삭제하고 CSV를 그대로 넣는다.
 local과 production이 같은 Firestore(FIRESTORE_DATABASE_ID)를 쓰므로 한 번만 실행하면 둘 다 반영된다.
 """
 import csv
@@ -14,7 +15,7 @@ load_dotenv()
 from services.firebase_service import db
 
 DATA_COLLECTION = "data"
-CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "samsung_2023_2024.csv")
+CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "samsung_2020_2026.csv")
 
 
 def load_rows():
@@ -24,7 +25,7 @@ def load_rows():
         for r in reader:
             rows.append({
                 "date": r["date"],
-                "value": round(float(r["close"])),
+                "value": round(float(r["value"])),
                 "memo": None,
             })
     return rows

@@ -48,8 +48,12 @@
       삼성전자 2023~2024 일별 종가 CSV(489건)를 `data/samsung_2023_2024.csv`로 복사해오고,
       `backend/import_samsung_data.py`(기존 data 컬렉션 삭제 후 CSV로 교체 시딩)를 새로 작성해 실행.
       local과 production이 같은 Firestore(`FIRESTORE_DATABASE_ID`)를 공유해서 한 번만 실행하면 됨.
-      `GET /api/data/summary`로 489건(2023-01-02~2024-12-30, 평균 66,248, 최대 84,619, 최소 48,362)
-      정상 반영 확인. 스크린샷도 이 데이터로 재캡처(`backend/e2e_capture.py`).
+- [x] ⚠️ 2년치로는 장기 추세 분석에 부족하다는 지적 → Yahoo Finance Chart API에서 직접 6년치를
+      받아오는 `backend/fetch_samsung_data.py` 신규 작성(표준 라이브러리 `urllib`만 사용). 삼성전자
+      2020-09-04~2026-09-04 일별 종가 1,467건(`data/samsung_2020_2026.csv`, 옛 2년치 파일은 삭제)으로
+      재교체. `GET /api/data/summary`로 1,467건(평균 88,796, 최대 362,500, 최소 49,900) 정상 반영 확인.
+      이 과정에서 `frontend/js/chart.js`의 x축 라벨 버그(여러 해 구간에서 "MM-DD"만 표시돼 라벨이
+      반복돼 보임)를 추가로 발견해 "YYYY-MM" 분기 처리로 수정. 스크린샷 재캡처 완료.
 
 ## Phase 8: 프론트엔드 개발
 - [x] `index.html` — 4탭 구조 (채팅/데이터 관리/대화 기록/데이터 요약)
