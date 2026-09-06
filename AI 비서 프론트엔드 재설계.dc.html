@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300..800;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { background: #f2f3f6; font-family: "Public Sans", "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: oklch(0.58 0.16 25); text-decoration: none; }
+  a:hover { color: oklch(0.48 0.16 25); text-decoration: underline; }
+  :focus-visible { outline: 2px solid oklch(0.58 0.16 25); outline-offset: 2px; border-radius: 4px; }
+  @keyframes dotblink { 0%, 80%, 100% { opacity: 0.18; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+  @keyframes drawin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="{{ vars }}" data-screen-label="Shell">
+<div style="min-height: 100vh; background: var(--bg, #f2f3f6); color: var(--tx, oklch(0.26 0.012 250)); padding: 28px 20px 64px; font-size: 15px; line-height: 1.5;">
+<div style="max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 14px; min-width: 0;">
+      <div style="width: 40px; height: 40px; flex: none; border-radius: 11px; background: var(--acc, oklch(0.58 0.16 25)); color: var(--accTx, #fff); display: grid; place-items: center; font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 17px; letter-spacing: -0.03em;">D</div>
+      <div style="min-width: 0;">
+        <h1 style="margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.02em;">내 데이터를 아는 AI 비서</h1>
+        <p style="margin: 3px 0 0; font-size: 13px; color: var(--dim, oklch(0.55 0.012 250));">시계열 데이터 요약을 컨텍스트로 주입해 대화하는 서비스</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 12px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 10px; background: var(--surf, #fff); font-size: 12.5px; color: var(--dim, oklch(0.55 0.012 250));">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ statusDot }};"></span>
+        <span style="font-family: 'IBM Plex Mono', monospace;">{{ statusText }}</span>
+      </div>
+      <button type="button" onClick="{{ toggleTheme }}" aria-label="테마 전환" style="height: 38px; min-width: 44px; padding: 0 13px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); background: var(--surf, #fff); color: var(--tx, oklch(0.26 0.012 250)); border-radius: 10px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; font-weight: 500;" style-hover="border-color: var(--acc, oklch(0.58 0.16 25)); color: var(--acc, oklch(0.58 0.16 25));">{{ themeLabel }}</button>
+    </div>
+  </header>
+
+  <sc-if value="{{ showBanner }}" hint-placeholder-val="{{ true }}">
+    <div role="status" style="display: flex; align-items: flex-start; gap: 12px; padding: 13px 15px; border-radius: 12px; border: 1px solid {{ bannerBorder }}; background: {{ bannerBg }};">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; padding: 3px 7px; border-radius: 5px; background: {{ bannerTagBg }}; color: {{ bannerTagTx }}; flex: none; margin-top: 1px;">{{ bannerTag }}</span>
+      <p style="margin: 0; font-size: 13.5px; color: var(--tx, oklch(0.26 0.012 250)); flex: 1; text-wrap: pretty;">{{ bannerText }}</p>
+      <button type="button" onClick="{{ retry }}" style="flex: none; height: 30px; padding: 0 11px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); background: var(--surf, #fff); color: var(--tx, oklch(0.26 0.012 250)); border-radius: 8px; font-size: 12.5px; cursor: pointer;">{{ bannerAction }}</button>
+    </div>
+  </sc-if>
+
+  <nav role="tablist" aria-label="화면 전환" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; background: var(--surf, #fff); border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 14px;">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+      <button type="button" role="tab" aria-selected="{{ t.selected }}" onClick="{{ t.go }}" style="{{ t.style }}">
+        <span style="font-size: 14px; font-weight: 600;">{{ t.label }}</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; opacity: 0.72;">{{ t.hint }}</span>
+      </button>
+    </sc-for>
+  </nav>
+
+  <sc-if value="{{ isChat }}" hint-placeholder-val="{{ true }}">
+  <section role="tabpanel" aria-label="채팅" data-screen-label="채팅" style="display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch;">
+
+      <div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; background: var(--surf, #fff); border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 16px; overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--bd, oklch(0.905 0.007 250));">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <h2 style="margin: 0; font-size: 15px; font-weight: 700;">AI 채팅</h2>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; padding: 4px 8px; border-radius: 6px; background: var(--accSoft, oklch(0.955 0.025 25)); color: var(--acc, oklch(0.58 0.16 25)); white-space: nowrap;">{{ convTag }}</span>
+          </div>
+          <button type="button" onClick="{{ newChat }}" style="height: 34px; padding: 0 12px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); background: transparent; color: var(--tx, oklch(0.26 0.012 250)); border-radius: 9px; font-size: 13px; cursor: pointer; white-space: nowrap;" style-hover="border-color: var(--acc, oklch(0.58 0.16 25)); color: var(--acc, oklch(0.58 0.16 25));">새 대화</button>
+        </div>
+
+        <div style="flex: 1; min-height: 380px; max-height: 520px; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; background: var(--surf2, oklch(0.985 0.003 250));">
+          <p style="margin: 0 auto; font-size: 12px; color: var(--dim, oklch(0.55 0.012 250)); font-family: 'IBM Plex Mono', monospace;">{{ chatNotice }}</p>
+          <sc-for list="{{ messages }}" as="m" hint-placeholder-count="3">
+            <div style="{{ m.wrapStyle }}">
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.08em; color: var(--dim, oklch(0.55 0.012 250));">{{ m.who }}</span>
+              <div style="{{ m.bubbleStyle }}">{{ m.content }}</div>
+              <sc-if value="{{ m.showTrace }}" hint-placeholder-val="{{ false }}">
+                <div style="max-width: 100%; border: 1px dashed var(--bd, oklch(0.905 0.007 250)); border-radius: 11px; padding: 11px 13px; background: var(--surf, #fff); display: flex; flex-direction: column; gap: 8px;">
+                  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.06em; color: var(--dim, oklch(0.55 0.012 250));">TOOL CALL TRACE</span>
+                  <sc-for list="{{ traceSteps }}" as="s" hint-placeholder-count="3">
+                    <div style="display: flex; gap: 9px; align-items: baseline;">
+                      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--acc, oklch(0.58 0.16 25)); flex: none;">{{ s.n }}</span>
+                      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--tx, oklch(0.26 0.012 250));">{{ s.call }}</span>
+                      <span style="font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250));">{{ s.note }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <sc-if value="{{ sending }}" hint-placeholder-val="{{ false }}">
+            <div style="align-self: flex-start; display: flex; gap: 5px; align-items: center; padding: 14px 16px; border-radius: 14px 14px 14px 4px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); background: var(--surf, #fff);">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--dim, oklch(0.55 0.012 250)); animation: dotblink 1.2s infinite ease-in-out;"></span>
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--dim, oklch(0.55 0.012 250)); animation: dotblink 1.2s infinite ease-in-out 0.2s;"></span>
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--dim, oklch(0.55 0.012 250)); animation: dotblink 1.2s infinite ease-in-out 0.4s;"></span>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border-top: 1px solid var(--bd, oklch(0.905 0.007 250)); padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="3">
+              <button type="button" onClick="{{ s.go }}" style="height: 30px; padding: 0 10px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 15px; background: transparent; color: var(--dim, oklch(0.55 0.012 250)); font-size: 12.5px; cursor: pointer;" style-hover="border-color: var(--acc, oklch(0.58 0.16 25)); color: var(--acc, oklch(0.58 0.16 25));">{{ s.text }}</button>
+            </sc-for>
+          </div>
+          <form onSubmit="{{ send }}" style="display: flex; gap: 8px;">
+            <input type="text" value="{{ draft }}" onChange="{{ onDraft }}" placeholder="데이터에 대해 물어보세요 (예: 이번 달 실적이 어때?)" aria-label="메시지 입력" style="flex: 1; min-width: 0; height: 46px; padding: 0 14px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 11px; background: var(--surf2, oklch(0.985 0.003 250)); color: var(--tx, oklch(0.26 0.012 250)); font-family: 'Public Sans', sans-serif; font-size: 14.5px; outline: none;" style-focus="border-color: var(--acc, oklch(0.58 0.16 25));" />
+            <button type="submit" style="height: 46px; min-width: 76px; padding: 0 18px; border: none; border-radius: 11px; background: var(--acc, oklch(0.58 0.16 25)); color: var(--accTx, #fff); font-family: 'Public Sans', sans-serif; font-size: 14.5px; font-weight: 600; cursor: pointer;">전송</button>
+          </form>
+        </div>
+      </div>
+
+      <aside style="flex: 1 1 300px; max-width: 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+        <div style="background: var(--surf, #fff); border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 13px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <h3 style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: -0.01em;">AI에게 주입된 컨텍스트</h3>
+            <button type="button" onClick="{{ toggleCtx }}" style="height: 28px; padding: 0 9px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); background: transparent; color: var(--dim, oklch(0.55 0.012 250)); border-radius: 7px; font-size: 11.5px; cursor: pointer; white-space: nowrap;">{{ ctxLabel }}</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 9px;">
+            <sc-for list="{{ ctxRows }}" as="r" hint-placeholder-count="5">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+                <span style="font-size: 12.5px; color: var(--dim, oklch(0.55 0.012 250));">{{ r.k }}</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-align: right;">{{ r.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ ctxOpen }}" hint-placeholder-val="{{ false }}">
+            <pre style="margin: 0; padding: 13px; border-radius: 10px; background: var(--surf2, oklch(0.985 0.003 250)); border: 1px solid var(--bd, oklch(0.905 0.007 250)); font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; line-height: 1.7; color: var(--tx, oklch(0.26 0.012 250)); white-space: pre-wrap; overflow-x: auto;">{{ promptText }}</pre>
+          </sc-if>
+          <p style="margin: 0; font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250)); text-wrap: pretty;">이 요약은 대화 시작 시점에 system 메시지로 한 번 삽입됩니다. 데이터가 바뀌면 새 대화를 시작하세요.</p>
+        </div>
+
+        <div style="background: var(--surf, #fff); border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+          <h3 style="margin: 0; font-size: 13px; font-weight: 700;">최근 120일 추이</h3>
+          <svg viewBox="0 0 620 150" width="100%" height="120" role="img" aria-label="최근 120일 값 추이 스파크라인" style="display: block; overflow: visible;">
+            <path d="{{ sparkArea }}" fill="{{ areaFill }}"></path>
+            <path d="{{ sparkPath }}" fill="none" stroke="var(--acc, oklch(0.58 0.16 25))" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path>
+          </svg>
+          <button type="button" onClick="{{ goSummary }}" style="height: 36px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); background: transparent; color: var(--tx, oklch(0.26 0.012 250)); border-radius: 9px; font-size: 13px; cursor: pointer;" style-hover="border-color: var(--acc, oklch(0.58 0.16 25)); color: var(--acc, oklch(0.58 0.16 25));">데이터 요약 자세히 보기</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ isData }}" hint-placeholder-val="{{ false }}">
+  <section role="tabpanel" aria-label="데이터 관리" data-screen-label="데이터 관리" style="background: var(--surf, #fff); border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+      <div>
+        <h2 style="margin: 0; font-size: 15px; font-weight: 700;">데이터 관리</h2>
+        <p style="margin: 3px 0 0; font-size: 12.5px; color: var(--dim, oklch(0.55 0.012 250));">{{ rowCountText }}</p>
+      </div>
+      <div style="display: flex; gap: 7px;">
+        <button type="button" onClick="{{ exportCsv }}" style="height: 36px; padding: 0 13px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); background: transparent; color: var(--tx, oklch(0.26 0.012 250)); border-radius: 9px; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; cursor: pointer;" style-hover="border-color: var(--acc, oklch(0.58 0.16 25)); color: var(--acc, oklch(0.58 0.16 25));">CSV 내보내기</button>
+        <button type="button" onClick="{{ exportJson }}" style="height: 36px; padding: 0 13px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); background: transparent; color: var(--tx, oklch(0.26 0.012 250)); border-radius: 9px; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; cursor: pointer;" style-hover="border-color: var(--acc, oklch(0.58 0.16 25)); color: var(--acc, oklch(0.58 0.16 25));">JSON 내보내기</button>
+      </div>
+    </div>
+
+    <form onSubmit="{{ addRow }}" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; border-radius: 13px; background: var(--surf2, oklch(0.985 0.003 250)); border: 1px solid var(--bd, oklch(0.905 0.007 250));">
+      <label style="flex: 1 1 150px; min-width: 0; display: flex; flex-direction: column; gap: 5px;">
+        <span style="font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250)); font-family: 'IBM Plex Mono', monospace;">DATE</span>
+        <input type="date" value="{{ formDate }}" onChange="{{ onFormDate }}" required="{{ true }}" style="height: 44px; padding: 0 12px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 10px; background: var(--surf, #fff); color: var(--tx, oklch(0.26 0.012 250)); font-family: 'IBM Plex Mono', monospace; font-size: 13.5px; outline: none;" style-focus="border-color: var(--acc, oklch(0.58 0.16 25));" />
+      </label>
+      <label style="flex: 1 1 150px; min-width: 0; display: flex; flex-direction: column; gap: 5px;">
+        <span style="font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250)); font-family: 'IBM Plex Mono', monospace;">VALUE</span>
+        <input type="number" value="{{ formValue }}" onChange="{{ onFormValue }}" placeholder="0" required="{{ true }}" style="height: 44px; padding: 0 12px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 10px; background: var(--surf, #fff); color: var(--tx, oklch(0.26 0.012 250)); font-family: 'IBM Plex Mono', monospace; font-size: 13.5px; outline: none;" style-focus="border-color: var(--acc, oklch(0.58 0.16 25));" />
+      </label>
+      <label style="flex: 2 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 5px;">
+        <span style="font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250)); font-family: 'IBM Plex Mono', monospace;">MEMO</span>
+        <input type="text" value="{{ formMemo }}" onChange="{{ onFormMemo }}" placeholder="메모 (선택)" style="height: 44px; padding: 0 12px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 10px; background: var(--surf, #fff); color: var(--tx, oklch(0.26 0.012 250)); font-size: 14px; outline: none;" style-focus="border-color: var(--acc, oklch(0.58 0.16 25));" />
+      </label>
+      <div style="display: flex; align-items: flex-end; gap: 7px; flex: 0 0 auto;">
+        <button type="submit" style="height: 44px; min-width: 92px; padding: 0 18px; border: none; border-radius: 10px; background: var(--acc, oklch(0.58 0.16 25)); color: var(--accTx, #fff); font-size: 14px; font-weight: 600; cursor: pointer;">{{ submitLabel }}</button>
+        <sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ cancelEdit }}" style="height: 44px; padding: 0 14px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); background: transparent; color: var(--dim, oklch(0.55 0.012 250)); border-radius: 10px; font-size: 14px; cursor: pointer;">취소</button>
+        </sc-if>
+      </div>
+    </form>
+
+    <div style="overflow-x: auto; border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 13px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <thead>
+          <tr>
+            <th style="text-align: left; padding: 11px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.08em; font-weight: 500; color: var(--dim, oklch(0.55 0.012 250)); background: var(--surf2, oklch(0.985 0.003 250)); border-bottom: 1px solid var(--bd, oklch(0.905 0.007 250));">날짜</th>
+            <th style="text-align: right; padding: 11px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.08em; font-weight: 500; color: var(--dim, oklch(0.55 0.012 250)); background: var(--surf2, oklch(0.985 0.003 250)); border-bottom: 1px solid var(--bd, oklch(0.905 0.007 250));">값</th>
+            <th style="text-align: left; padding: 11px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.08em; font-weight: 500; color: var(--dim, oklch(0.55 0.012 250)); background: var(--surf2, oklch(0.985 0.003 250)); border-bottom: 1px solid var(--bd, oklch(0.905 0.007 250));">메모</th>
+            <th style="text-align: right; padding: 11px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.08em; font-weight: 500; color: var(--dim, oklch(0.55 0.012 250)); background: var(--surf2, oklch(0.985 0.003 250)); border-bottom: 1px solid var(--bd, oklch(0.905 0.007 250));">작업</th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="8">
+            <tr style="{{ r.rowStyle }}">
+              <td style="padding: 11px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; border-bottom: 1px solid var(--bd, oklch(0.905 0.007 250)); white-space: nowrap;">{{ r.date }}</td>
+              <td style="padding: 11px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; text-align: right; border-bottom: 1px solid var(--bd, oklch(0.905 0.007 250)); white-space: nowrap;">{{ r.value }}</td>
+              <td style="padding: 11px 14px; font-size: 13.5px; color: var(--dim, oklch(0.55 0.012 250)); border-bottom: 1px solid var(--bd, oklch(0.905 0.007 250));">{{ r.memo }}</td>
+              <td style="padding: 8px 14px; border-bottom: 1px solid var(--bd, oklch(0.905 0.007 250));">
+                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                  <button type="button" onClick="{{ r.edit }}" style="height: 32px; padding: 0 11px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); background: transparent; color: var(--tx, oklch(0.26 0.012 250)); border-radius: 8px; font-size: 12.5px; cursor: pointer;" style-hover="border-color: var(--acc, oklch(0.58 0.16 25)); color: var(--acc, oklch(0.58 0.16 25));">수정</button>
+                  <button type="button" onClick="{{ r.del }}" style="height: 32px; padding: 0 11px; border: 1px solid color-mix(in oklch, oklch(0.55 0.19 20) 32%, transparent); background: transparent; color: oklch(0.55 0.19 20); border-radius: 8px; font-size: 12.5px; cursor: pointer;" style-hover="background: color-mix(in oklch, oklch(0.55 0.19 20) 10%, transparent);">삭제</button>
+                </div>
+              </td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin: 0; font-size: 12px; color: var(--dim, oklch(0.55 0.012 250)); font-family: 'IBM Plex Mono', monospace;">{{ tableFooter }}</p>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ isConv }}" hint-placeholder-val="{{ false }}">
+  <section role="tabpanel" aria-label="대화 기록" data-screen-label="대화 기록" style="background: var(--surf, #fff); border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+    <div>
+      <h2 style="margin: 0; font-size: 15px; font-weight: 700;">대화 기록</h2>
+      <p style="margin: 3px 0 0; font-size: 12.5px; color: var(--dim, oklch(0.55 0.012 250));">불러오면 같은 conversation_id로 대화가 이어집니다.</p>
+    </div>
+    <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;">
+      <sc-for list="{{ convList }}" as="c" hint-placeholder-count="4">
+        <li style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 15px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 13px; background: var(--surf2, oklch(0.985 0.003 250));">
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 240px;">
+            <span style="font-size: 14.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ c.title }}</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250));">{{ c.meta }}</span>
+          </div>
+          <div style="display: flex; gap: 7px; flex: none;">
+            <button type="button" onClick="{{ c.load }}" style="height: 36px; padding: 0 14px; border: none; border-radius: 9px; background: var(--accSoft, oklch(0.955 0.025 25)); color: var(--acc, oklch(0.58 0.16 25)); font-size: 13px; font-weight: 600; cursor: pointer;">불러오기</button>
+            <button type="button" onClick="{{ c.del }}" style="height: 36px; padding: 0 12px; border: 1px solid color-mix(in oklch, oklch(0.55 0.19 20) 32%, transparent); background: transparent; color: oklch(0.55 0.19 20); border-radius: 9px; font-size: 13px; cursor: pointer;">삭제</button>
+          </div>
+        </li>
+      </sc-for>
+    </ul>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ isSummary }}" hint-placeholder-val="{{ false }}">
+  <section role="tabpanel" aria-label="데이터 요약" data-screen-label="데이터 요약" style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="background: var(--surf, #fff); border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+        <div>
+          <h2 style="margin: 0; font-size: 15px; font-weight: 700;">데이터 요약</h2>
+          <p style="margin: 3px 0 0; font-size: 12.5px; color: var(--dim, oklch(0.55 0.012 250));">GET /api/data/summary — 프롬프트에 주입되는 값과 동일</p>
+        </div>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 6px 10px; border-radius: 8px; background: var(--accSoft, oklch(0.955 0.025 25)); color: var(--acc, oklch(0.58 0.16 25));">{{ trendChip }}</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+        <sc-for list="{{ cards }}" as="c" hint-placeholder-count="7">
+          <div style="border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 12px; padding: 13px 14px; background: var(--surf2, oklch(0.985 0.003 250)); display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250)); font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.04em;">{{ c.label }}</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">{{ c.value }}</span>
+            <span style="font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250));">{{ c.sub }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="background: var(--surf, #fff); border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 700;">값 추이</h3>
+        <div role="group" aria-label="기간 선택" style="display: flex; gap: 4px; padding: 4px; border: 1px solid var(--bd, oklch(0.905 0.007 250)); border-radius: 10px;">
+          <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="3">
+            <button type="button" onClick="{{ r.go }}" aria-pressed="{{ r.on }}" style="{{ r.style }}">{{ r.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <svg viewBox="0 0 1000 300" width="100%" height="300" role="img" aria-label="{{ chartAria }}" style="display: block; overflow: visible;">
+        <sc-for list="{{ gridLines }}" as="g" hint-placeholder-count="4">
+          <g>
+            <line x1="0" y1="{{ g.y }}" x2="1000" y2="{{ g.y }}" stroke="var(--bd, oklch(0.905 0.007 250))" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+            <text x="0" y="{{ g.ty }}" fill="var(--dim, oklch(0.55 0.012 250))" font-family="IBM Plex Mono, monospace" font-size="15">{{ g.label }}</text>
+          </g>
+        </sc-for>
+        <line x1="0" y1="{{ avgY }}" x2="1000" y2="{{ avgY }}" stroke="var(--acc, oklch(0.58 0.16 25))" stroke-width="1" stroke-dasharray="5 5" vector-effect="non-scaling-stroke" opacity="0.6"></line>
+        <path d="{{ chartArea }}" fill="{{ areaFill }}"></path>
+        <path d="{{ chartPath }}" fill="none" stroke="var(--acc, oklch(0.58 0.16 25))" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path>
+        <circle cx="{{ lastX }}" cy="{{ lastY }}" r="4" fill="var(--acc, oklch(0.58 0.16 25))"></circle>
+      </svg>
+      <div style="display: flex; justify-content: space-between; gap: 8px;">
+        <sc-for list="{{ xLabels }}" as="x" hint-placeholder-count="4">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250));">{{ x.label }}</span>
+        </sc-for>
+      </div>
+      <p style="margin: 0; font-size: 12px; color: var(--dim, oklch(0.55 0.012 250)); text-wrap: pretty;">점선은 전체 평균({{ avgLabel }})입니다. 트렌드는 최근 5개 평균과 그 이전 5개 평균을 비교해 ±5% 기준으로 판정합니다.</p>
+    </div>
+  </section>
+  </sc-if>
+
+  <footer style="display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; padding-top: 4px;">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250));">vanilla HTML / CSS / JS · no framework</span>
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--dim, oklch(0.55 0.012 250));">{{ apiBaseLabel }}</span>
+  </footer>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;,&quot;section&quot;:&quot;테마&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;options&quot;:[&quot;#b8452c&quot;,&quot;#2f5fb8&quot;,&quot;#2f8f6a&quot;,&quot;#6b4bb8&quot;],&quot;default&quot;:&quot;#b8452c&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;테마&quot;},&quot;connection&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;cold&quot;,&quot;error&quot;],&quot;default&quot;:&quot;cold&quot;,&quot;tsType&quot;:&quot;'ok' | 'cold' | 'error'&quot;,&quot;section&quot;:&quot;상태&quot;},&quot;showToolTrace&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;상태&quot;}}">
+const LIGHT = {
+  bg: "oklch(0.972 0.004 250)", surf: "#ffffff", surf2: "oklch(0.985 0.003 250)",
+  bd: "oklch(0.905 0.007 250)", tx: "oklch(0.26 0.012 250)", dim: "oklch(0.55 0.012 250)", accTx: "#ffffff",
+};
+const DARK = {
+  bg: "oklch(0.185 0.012 250)", surf: "oklch(0.232 0.013 250)", surf2: "oklch(0.262 0.013 250)",
+  bd: "oklch(0.335 0.014 250)", tx: "oklch(0.955 0.004 250)", dim: "oklch(0.715 0.012 250)", accTx: "oklch(0.17 0.02 25)",
+};
+
+const PROMPT = `당신은 데이터 분석 비서입니다.
+
+[사용자 데이터 요약]
+- 데이터 기간: 2026-05-09 ~ 2026-09-05
+- 총 레코드: 120개
+- 주요 지표:
+  - 총합: 760,620,157
+  - 평균: 6,338,501.31
+  - 최대: 9,920,824
+  - 최소: 4,280,044
+- 최근 트렌드: 안정적 (유지)
+
+위 데이터를 기반으로 맞춤형 답변을 제공하세요.`;
+
+const SEED_MESSAGES = [
+  { role: "user", content: "이번 달 실적이 어때?" },
+  { role: "assistant", trace: true, content: "9월 데이터는 5일까지 5건이 들어와 있고, 일평균 7,467,394원입니다. 전체 기간 평균(6,338,501원)보다 17.8% 높은 수준이에요.\n\n다만 최근 5일 평균과 그 직전 5일 평균의 차이는 -0.8%로, 판정 기준(±5%) 안이라 트렌드는 \"안정적(유지)\"으로 잡힙니다." },
+  { role: "user", content: "가장 실적이 좋았던 날은?" },
+  { role: "assistant", content: "최고값은 9,920,824원이고, 최근 기록 중에서는 9월 5일 9,397,343원이 가장 높았습니다. 최저값은 5월 14일 4,280,044원입니다." },
+];
+
+class Component extends DCLogic {
+  state = {
+    tab: "chat", theme: null, ctxOpen: false, sending: false, draft: "",
+    messages: SEED_MESSAGES, series: [], range: 120, bannerOpen: true,
+    editing: null, form: { date: "2026-09-06", value: "", memo: "" },
+    rows: [], convs: [
+      { id: "yfKt7F1", title: "이번 데이터 요약이랑 최근 트렌드", meta: "2026-09-05 16:41 · 6 messages" },
+      { id: "a91Kd02", title: "이번 달 실적이 어때?", meta: "2026-09-05 15:02 · 4 messages" },
+      { id: "c33Ba7x", title: "최근 하락한 날 원인 좀 정리해줘", meta: "2026-09-04 21:18 · 8 messages" },
+      { id: "z12Qe55", title: "메모에 '특가 이벤트'인 날만 평균 내줘", meta: "2026-09-03 10:07 · 5 messages" },
+    ],
+  };
+
+  componentDidMount() {
+    import("./sample-series.js").then((m) => {
+      this.setState({ series: m.SERIES, rows: m.SERIES.slice(-10).reverse() });
+    }).catch(() => {});
+  }
+
+  theme() { return this.state.theme || this.props.theme || "light"; }
+  conn() { return this.props.connection || "cold"; }
+  acc() { return this.props.accent || "#b8452c"; }
+
+  fmt(n) { return Number(n).toLocaleString("ko-KR"); }
+  short(n) { return (Math.round(n / 100000) / 10).toFixed(1) + "M"; }
+
+  download(name, text, type) {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = document.createElement("a");
+    a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  send = (e) => {
+    e.preventDefault();
+    const text = this.state.draft.trim();
+    if (!text) return;
+    this.setState((s) => ({ draft: "", sending: true, messages: s.messages.concat([{ role: "user", content: text }]) }));
+    setTimeout(() => {
+      this.setState((s) => ({
+        sending: false,
+        messages: s.messages.concat([{ role: "assistant", content: "저장된 요약(120건 · 2026-05-09~2026-09-05)을 기준으로 답하면, 전체 평균은 6,338,501원, 표준편차는 1,261,745원입니다. 값이 평균 ±20% 안에 대부분 모여 있어 변동은 크지 않은 편이에요." }]),
+      }));
+    }, 1100);
+  };
+
+  renderVals() {
+    const theme = this.theme();
+    const p = theme === "dark" ? DARK : LIGHT;
+    const acc = this.acc();
+    const vars = { "--bg": p.bg, "--surf": p.surf, "--surf2": p.surf2, "--bd": p.bd, "--tx": p.tx, "--dim": p.dim, "--acc": acc, "--accTx": p.accTx, "--accSoft": "color-mix(in oklch, " + acc + " 14%, " + p.surf + ")" };
+
+    const tab = this.state.tab;
+    const tabDefs = [
+      { key: "chat", label: "채팅", hint: "AI 대화" },
+      { key: "data", label: "데이터 관리", hint: "CRUD" },
+      { key: "conversations", label: "대화 기록", hint: "불러오기" },
+      { key: "summary", label: "데이터 요약", hint: "통계 · 그래프" },
+    ];
+    const tabs = tabDefs.map((t) => {
+      const on = t.key === tab;
+      return {
+        label: t.label, hint: t.hint, selected: on,
+        go: () => this.setState({ tab: t.key }),
+        style: "flex: 1 1 140px; min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 8px 14px; border: none; border-radius: 10px; cursor: pointer; text-align: left; font-family: 'Public Sans', sans-serif; background: " + (on ? acc : "transparent") + "; color: " + (on ? p.accTx : p.dim) + ";",
+      };
+    });
+
+    const conn = this.conn();
+    const banners = {
+      cold: { tag: "COLD START", text: "백엔드가 Render 무료 티어라 첫 요청은 10~30초 걸릴 수 있습니다. 응답이 늦어도 잠시 기다려주세요.", action: "지금 예열", border: "color-mix(in oklch, " + acc + " 30%, " + p.bd + ")", bg: "color-mix(in oklch, " + acc + " 8%, " + p.surf + ")", tagBg: "color-mix(in oklch, " + acc + " 16%, " + p.surf + ")", tagTx: acc },
+      error: { tag: "OFFLINE", text: "백엔드에 연결할 수 없습니다. 요약과 목록은 마지막으로 불러온 값이며, 저장은 지금 동작하지 않습니다.", action: "다시 시도", border: "color-mix(in oklch, oklch(0.55 0.19 20) 38%, " + p.bd + ")", bg: "color-mix(in oklch, oklch(0.55 0.19 20) 9%, " + p.surf + ")", tagBg: "color-mix(in oklch, oklch(0.55 0.19 20) 16%, " + p.surf + ")", tagTx: "oklch(0.55 0.19 20)" },
+    };
+    const b = banners[conn];
+    const statusMap = { ok: ["oklch(0.62 0.15 155)", "API 200 · 0.4s"], cold: [acc, "API 예열 중"], error: ["oklch(0.55 0.19 20)", "API 연결 실패"] };
+    const st = statusMap[conn] || statusMap.ok;
+
+    const series = this.state.series;
+    const range = this.state.range;
+    const slice = range >= series.length ? series : series.slice(-range);
+    const W = 1000, H = 300;
+    const vals = slice.map((d) => d.value);
+    const lo = vals.length ? Math.min.apply(null, vals) * 0.96 : 0;
+    const hi = vals.length ? Math.max.apply(null, vals) * 1.03 : 1;
+    const xy = (v, i) => [(i / Math.max(1, slice.length - 1)) * W, H - ((v - lo) / (hi - lo)) * H];
+    const pts = vals.map(xy);
+    const path = pts.map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" ");
+    const area = pts.length ? path + " L" + W + " " + H + " L0 " + H + " Z" : "";
+    const allAvg = 6338501.31;
+    const avgY = vals.length ? (H - ((allAvg - lo) / (hi - lo)) * H).toFixed(1) : 0;
+    const grid = [0, 1, 2, 3].map((k) => {
+      const y = (H / 3) * k;
+      return { y: y.toFixed(0), ty: (y + 14).toFixed(0), label: vals.length ? this.short(hi - ((hi - lo) / 3) * k) : "" };
+    });
+    const xLabels = (slice.length ? [0, Math.floor(slice.length / 3), Math.floor((slice.length * 2) / 3), slice.length - 1] : []).map((i) => ({ label: slice[i] ? slice[i].date.slice(5) : "" }));
+
+    const sparkSlice = series.slice(-120);
+    const sVals = sparkSlice.map((d) => d.value);
+    const sLo = sVals.length ? Math.min.apply(null, sVals) * 0.97 : 0;
+    const sHi = sVals.length ? Math.max.apply(null, sVals) * 1.03 : 1;
+    const sPts = sVals.map((v, i) => [(i / Math.max(1, sVals.length - 1)) * 620, 150 - ((v - sLo) / (sHi - sLo)) * 150]);
+    const sparkPath = sPts.map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" ");
+
+    const cards = [
+      { label: "PERIOD", value: "2026-05-09", sub: "~ 2026-09-05 (120일)" },
+      { label: "COUNT", value: "120", sub: "레코드" },
+      { label: "TOTAL", value: this.fmt(760620157), sub: "전체 합계" },
+      { label: "AVERAGE", value: this.fmt(6338501), sub: "일 평균" },
+      { label: "MAX", value: this.fmt(9920824), sub: "최고값" },
+      { label: "MIN", value: this.fmt(4280044), sub: "최저값" },
+      { label: "STD DEV", value: this.fmt(1261745), sub: "평균의 19.9%" },
+    ];
+
+    const ranges = [
+      { key: 30, label: "30일" }, { key: 60, label: "60일" }, { key: 120, label: "전체" },
+    ].map((r) => ({
+      label: r.label, on: r.key === range,
+      go: () => this.setState({ range: r.key }),
+      style: "min-height: 34px; padding: 0 13px; border: none; border-radius: 7px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; background: " + (r.key === range ? acc : "transparent") + "; color: " + (r.key === range ? p.accTx : p.dim) + ";",
+    }));
+
+    const messages = this.state.messages.map((m) => {
+      const user = m.role === "user";
+      return {
+        who: user ? "USER" : "ASSISTANT",
+        content: m.content,
+        showTrace: !user && !!m.trace && this.props.showToolTrace !== false,
+        wrapStyle: "display: flex; flex-direction: column; gap: 5px; max-width: 82%; align-self: " + (user ? "flex-end" : "flex-start") + "; align-items: " + (user ? "flex-end" : "flex-start") + "; animation: drawin 0.18s ease-out;",
+        bubbleStyle: "padding: 11px 14px; border-radius: " + (user ? "14px 14px 4px 14px" : "14px 14px 14px 4px") + "; white-space: pre-wrap; font-size: 14.5px; line-height: 1.62; text-wrap: pretty; " + (user ? "background: " + acc + "; color: " + p.accTx + ";" : "background: " + p.surf + "; border: 1px solid " + p.bd + "; color: " + p.tx + ";"),
+      };
+    });
+
+    const suggestions = ["이번 달 실적이 어때?", "최근 트렌드 알려줘", "특가 이벤트 날 평균은?"].map((text) => ({
+      text, go: () => this.setState({ draft: text }),
+    }));
+
+    const rows = this.state.rows.map((r, i) => ({
+      date: r.date, value: this.fmt(r.value), memo: r.memo || "—",
+      rowStyle: "background: " + (this.state.editing === r.date ? "color-mix(in oklch, " + acc + " 8%, " + p.surf + ")" : "transparent") + ";",
+      edit: () => this.setState({ editing: r.date, form: { date: r.date, value: String(r.value), memo: r.memo || "" } }),
+      del: () => this.setState((s) => ({ rows: s.rows.filter((x) => x.date !== r.date) })),
+    }));
+
+    return {
+      vars, tabs, isChat: tab === "chat", isData: tab === "data", isConv: tab === "conversations", isSummary: tab === "summary",
+      themeLabel: theme === "dark" ? "LIGHT" : "DARK",
+      toggleTheme: () => this.setState({ theme: theme === "dark" ? "light" : "dark" }),
+      statusDot: st[0], statusText: st[1],
+      showBanner: !!b && this.state.bannerOpen,
+      bannerTag: b ? b.tag : "", bannerText: b ? b.text : "", bannerAction: b ? b.action : "",
+      bannerBorder: b ? b.border : "", bannerBg: b ? b.bg : "", bannerTagBg: b ? b.tagBg : "", bannerTagTx: b ? b.tagTx : "",
+      retry: () => this.setState({ bannerOpen: false }),
+
+      convTag: "conversation_id: yfKt7F1",
+      chatNotice: "2026-09-05 15:02 · 요약 컨텍스트 주입됨",
+      messages, sending: this.state.sending, suggestions,
+      draft: this.state.draft,
+      onDraft: (e) => this.setState({ draft: e.target.value }),
+      send: this.send,
+      newChat: () => this.setState({ messages: [], draft: "" }),
+      traceSteps: [
+        { n: "01", call: "GET /api/data/summary", note: "120건 통계 계산" },
+        { n: "02", call: "system prompt 주입", note: "기간·개수·지표·트렌드" },
+        { n: "03", call: "POST /v1/chat/completions", note: "gpt-5-mini · 1200 tokens" },
+      ],
+      ctxOpen: this.state.ctxOpen, ctxLabel: this.state.ctxOpen ? "접기" : "원문 보기",
+      toggleCtx: () => this.setState((s) => ({ ctxOpen: !s.ctxOpen })),
+      promptText: PROMPT,
+      ctxRows: [
+        { k: "기간", v: "2026-05-09 ~ 09-05" }, { k: "레코드", v: "120개" },
+        { k: "평균", v: this.fmt(6338501) }, { k: "최대 / 최소", v: "9.9M / 4.3M" },
+        { k: "트렌드", v: "안정적 (유지)" },
+      ],
+      sparkPath, sparkArea: sPts.length ? sparkPath + " L620 150 L0 150 Z" : "",
+      areaFill: "color-mix(in oklch, " + acc + " 12%, transparent)",
+      goSummary: () => this.setState({ tab: "summary" }),
+
+      rowCountText: "120개 레코드 · 최근 10건 표시 · 날짜 내림차순",
+      tableRows: rows, tableFooter: "PUT /api/data/{id} · DELETE /api/data/{id}",
+      submitLabel: this.state.editing ? "수정 완료" : "추가",
+      editing: !!this.state.editing,
+      cancelEdit: () => this.setState({ editing: null, form: { date: "2026-09-06", value: "", memo: "" } }),
+      formDate: this.state.form.date, formValue: this.state.form.value, formMemo: this.state.form.memo,
+      onFormDate: (e) => this.setState((s) => ({ form: Object.assign({}, s.form, { date: e.target.value }) })),
+      onFormValue: (e) => this.setState((s) => ({ form: Object.assign({}, s.form, { value: e.target.value }) })),
+      onFormMemo: (e) => this.setState((s) => ({ form: Object.assign({}, s.form, { memo: e.target.value }) })),
+      addRow: (e) => {
+        e.preventDefault();
+        const f = this.state.form;
+        if (!f.date || !f.value) return;
+        this.setState((s) => ({
+          editing: null,
+          rows: [{ date: f.date, value: Number(f.value), memo: f.memo }].concat(s.rows.filter((x) => x.date !== f.date)),
+          form: { date: "2026-09-06", value: "", memo: "" },
+        }));
+      },
+      exportCsv: () => {
+        const head = "date,value,memo\n";
+        const body = series.map((d) => d.date + "," + d.value + ",\"" + (d.memo || "") + "\"").join("\n");
+        this.download("data_export.csv", head + body, "text/csv;charset=utf-8");
+      },
+      exportJson: () => this.download("data_export.json", JSON.stringify(series, null, 2), "application/json"),
+
+      convList: this.state.convs.map((c) => ({
+        title: c.title, meta: c.meta,
+        load: () => this.setState({ tab: "chat", messages: SEED_MESSAGES }),
+        del: () => this.setState((s) => ({ convs: s.convs.filter((x) => x.id !== c.id) })),
+      })),
+
+      cards, ranges, trendChip: "TREND: 안정적 (유지) · -0.8%",
+      gridLines: grid, xLabels, chartPath: path, chartArea: area, avgY,
+      avgLabel: this.fmt(6338501), chartAria: slice.length + "일 값 추이 선 그래프",
+      lastX: pts.length ? pts[pts.length - 1][0].toFixed(1) : 0,
+      lastY: pts.length ? pts[pts.length - 1][1].toFixed(1) : 0,
+      apiBaseLabel: "API_BASE_URL · codyssey-8-project.onrender.com",
+    };
+  }
+}
+</script>
+</body>
+</html>
